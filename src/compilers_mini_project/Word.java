@@ -16,6 +16,17 @@ public class Word {
     int end_pos;
     int line_num;
 
+    public Word()
+    {
+        super();
+    }
+    
+    public Word(String text)
+    {
+        this();
+        this.text = text;
+    }
+    
     public Word(String text, int start_pos, int start_in_line, int line_num) {
         this.text = text;
         this.start_pos = start_pos;

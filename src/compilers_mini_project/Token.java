@@ -41,10 +41,21 @@ public class Token {
         
         this.token_number = getNextTokenNumber();
     }
+    
+    public Token(String token_type)
+    {
+        this();
+        this.token_type = token_type;
+    }
 
+    public Token()
+    {
+        super();
+    }
+    
     @Override
     public String toString() {
-        return "token_type = " + this.token_type + ", token_value = " + token_value+ ", line_num = " + line_num;
+        return "token_type = " + this.token_type + ", token_value = " + token_value+ ", line_num = " + line_num + "start_in_line = "+ token_start_in_line;
     }
     
     

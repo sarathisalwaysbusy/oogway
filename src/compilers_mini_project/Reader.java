@@ -9,6 +9,8 @@ import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Scanner;
 
 /**
@@ -21,6 +23,8 @@ public class Reader {
     // if set --> we are in a region of space, and all future spaces needs to be skipped
     // also, means that the last word that ended with a space has been sent.
     
+    //public List<String> words;
+    public List<Word> words;
     
     boolean spaceFlag;
     FileReader fileReader;
@@ -28,9 +32,7 @@ public class Reader {
     Scanner scanner;
     
     // variables needed to keep track of the positions
-    
-    // points to the start position of the current word in the current line
-    int start_in_line;
+
     
     int line_num;
     
@@ -41,7 +43,9 @@ public class Reader {
 
     public Reader() {
         
-        start_in_line = 0; line_num = 1; start_pos = 0;
+        words = new ArrayList<>();
+        
+        line_num = 1; start_pos = 0;
         spaceFlag = false;
         word = null;
         
@@ -68,104 +72,140 @@ public class Reader {
         }
     }
     
-    /**
-     * changes the state variables of the reader depending on the type of character read
-     * @param ch 
-     */
-    private void changeState(char ch){
-        switch (ch){
-            case '\n':
-                this.line_num++;
-                this.start_in_line = 0;
-                this.start_pos++;
-                break;
-                
-            case ' ':
-            case '\t':
-                start_in_line++;
-                start_pos++;
-                break;
-            
-        }
-    }
+//    /**
+//     * changes the state variables of the reader depending on the type of character read
+//     * @param ch 
+//     */
+//    private void changeState(char ch){
+//        switch (ch){
+//            case '\n':
+//                this.line_num++;
+//                this.start_in_line = 0;
+//                this.start_pos++;
+//                break;
+//                
+//            case ' ':
+//            case '\t':
+//                start_in_line++;
+//                start_pos++;
+//                break;
+//            
+//        }
+//    }
+    
     
     // null is returned if eof is reached
     // word.text may contain strings like xyz>=yzc; --> needs separation.
     public Word getNextWord() throws IOException{
-        int r;
-        char ch;
-        String text = "";
-        word = null;
+        Word word = null;
         
-        // read a characte from the file
-        while((r = bufferedReader.read() ) != -1) {
-            ch = (char) r;
-            
-            // if encountered a whitespace
-            if(ch == '\n' || ch == '\t' || ch == ' ') 
-            {
-                // First space after a word, 
-                // create a word object THEN change the state
-                // then break while loop and send the newly created word
-                if(spaceFlag == false)
-                {
-                    // starting white space NO TEXT ENTERED YET
-                    if(text.length()==0)
-                    {
-                        changeState(ch);
-                        spaceFlag = true;   // we dealt with the space
-                    }
-                    else{
-                        word = new Word(text, start_pos, start_in_line, line_num);
-                    
-                        start_pos += text.length();
-                        start_in_line += text.length();
-                        
-                        text = "";
-                        changeState(ch);
-                        
-                        break;
-                    }
-                    
-                }
-                // if the current space needs to be ignored.
-                else if(spaceFlag == true)
-                {
-                    changeState(ch);
-                }
-            }
-            /// if the character read is an actual part of the text;
-            // if the read char is not a WHITESPACE, make spaceFlag false
-            // this makes it possible to send the next word when a future space is encountered.
-            else
-            {
-                text+=ch;
-                if(spaceFlag == true)
-                    spaceFlag = false;
-            }
-            
-        }
-        // eof reached
-        if(r==-1)
+        if(words.isEmpty())
         {
-            bufferedReader.close();
-            return null;
+            if(fillWords())
+                return getNextWord();
+            else
+                return null;
+        }
+        else
+        {
+//            String word_text = words.get(0);
+//            words.remove(0);
+//            word = new Word(word_text);
+//            return word;
+            word = words.get(0);
+            words.remove(0);
+            return word;
+        }
+    }
+    
+    boolean comment_flag = false;
+    public boolean fillWords() throws IOException
+    {
+        String line = "";
+        int start_in_line = 0;
+        
+        line = bufferedReader.readLine();
+        if(line == null)
+        {
+            return false;
         }
         
-        return word;
+        String word_array[] = line.split(" ");
+        
+        // if empty line
+        if(word_array.length==1)
+        {
+            if(word_array[0].trim().length()==0)
+            {
+                // redo for the next line
+                return fillWords();
+            }
+        }
+        
+        
+        for(String string:word_array){
+            //comment detection
+            if(string.contains("//"))
+            {
+                if(words.size()>0)
+                {
+                    // comment appeared mid-line
+                    line_num++;
+                    return true;    //stop reading and tell caller that words are filled.
+                }
+                else{   // comment appears as a start of the line
+                    line_num++;
+                    return fillWords();//redo;
+                }
+            }
+            string = string.trim();
+            if(string.length()==0)
+            {
+                continue;
+            }
+            Word word = new Word(string, start_pos, start_in_line, line_num);
+            words.add(word);
+            
+            start_in_line+=string.length()+1;   //1 for space
+            start_pos+=string.length()+1; // 1 for space
+        }
+        start_in_line=0;
+        line_num++;
+        return true;
+        
     }
+    
+//    public boolean AfillWords() throws IOException
+//    {
+//        String line = "";
+//        
+//        line = bufferedReader.readLine();
+//        if(line == null)
+//        {
+//            return false;
+//        }
+//        
+//        String word_array[] = line.split(" ");
+//        for(String string:word_array){
+//            string = string.trim();
+//            if(string.length()==0) continue;
+//            words.add(string);
+//        }
+//        line_num++;
+//        return true;
+//        
+//    }
     
 //    public static void main(String[] args) {
 //        Reader reader = new Reader();
-//        Word word;
+//        Word word = null;
 //        try{
-//            
-//            do {
+//            word = reader.getNextWord();
+//            while(word!=null)
+//            {
+//                System.out.println(word.text);
 //                word = reader.getNextWord();
-//                System.out.println(word.text + " " + word.line_num + " " + word.start_in_line);
-//                
-//                
-//            } while (word!=null);
+//            }
 //        }
 //        catch (Exception e)
 //        {
